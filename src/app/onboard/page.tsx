@@ -9,19 +9,45 @@ import { INDUSTRIES, COMPANY_SIZES, REVENUE_BRACKETS } from "@/lib/constants";
 import Link from "next/link";
 import { Suspense } from "react";
 
+const CUSTOM_REVENUE_PREFIX = "custom:";
+
+function sanitizeRevenueInput(raw: string): string {
+  const digitsOnly = raw.replace(/[^\d]/g, "");
+  if (!digitsOnly) return "";
+  const normalized = String(Number(digitsOnly));
+  return normalized === "0" ? "" : normalized;
+}
+
+function formatRevenueINR(amount: string): string {
+  if (!amount) return "";
+  const value = Number(amount);
+  if (!Number.isFinite(value) || value <= 0) return "";
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
 function OnboardForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { setCompany } = useCompany();
+  const initialRevenue = searchParams.get("revenue") || "";
+  const hasCustomRevenue = initialRevenue.startsWith(CUSTOM_REVENUE_PREFIX);
+  const initialCustomRevenue = hasCustomRevenue
+    ? sanitizeRevenueInput(initialRevenue.replace(CUSTOM_REVENUE_PREFIX, ""))
+    : "";
 
   // Pre-fill from URL params (for the judge demo trick)
   const [form, setForm] = useState<CompanyProfile>({
     name: searchParams.get("company") || "",
     industry: searchParams.get("industry") || "",
     size: searchParams.get("size") || "",
-    revenue: searchParams.get("revenue") || "",
+    revenue: hasCustomRevenue ? "custom" : initialRevenue,
     yearFounded: parseInt(searchParams.get("year") || "") || new Date().getFullYear(),
   });
+  const [customRevenue, setCustomRevenue] = useState(initialCustomRevenue);
 
   const [errors, setErrors] = useState<Partial<Record<keyof CompanyProfile, string>>>({});
 
@@ -35,7 +61,18 @@ function OnboardForm() {
     if (!form.name.trim()) newErrors.name = "Company name is required";
     if (!form.industry) newErrors.industry = "Select an industry";
     if (!form.size) newErrors.size = "Select company size";
-    if (!form.revenue) newErrors.revenue = "Select revenue bracket";
+    if (!form.revenue) {
+      newErrors.revenue = "Select revenue bracket";
+    } else if (form.revenue === "custom") {
+      if (!customRevenue) {
+        newErrors.revenue = "Enter a valid custom annual revenue";
+      } else {
+        const value = Number(customRevenue);
+        if (!Number.isFinite(value) || value <= 0) {
+          newErrors.revenue = "Custom annual revenue must be a positive number";
+        }
+      }
+    }
     if (!form.yearFounded || form.yearFounded < 1900 || form.yearFounded > 2026)
       newErrors.yearFounded = "Enter a valid year";
     setErrors(newErrors);
@@ -45,7 +82,14 @@ function OnboardForm() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
-    setCompany(form);
+    const payload: CompanyProfile = {
+      ...form,
+      revenue:
+        form.revenue === "custom"
+          ? `${CUSTOM_REVENUE_PREFIX}${customRevenue}`
+          : form.revenue,
+    };
+    setCompany(payload);
     router.push("/dashboard");
   };
 
@@ -157,7 +201,13 @@ function OnboardForm() {
               <select
                 className="input-glass"
                 value={form.revenue}
-                onChange={(e) => update("revenue", e.target.value)}
+                onChange={(e) => {
+                  const nextValue = e.target.value;
+                  update("revenue", nextValue);
+                  if (nextValue !== "custom") {
+                    setCustomRevenue("");
+                  }
+                }}
               >
                 <option value="">Select revenue bracket</option>
                 {REVENUE_BRACKETS.map((r) => (
@@ -165,7 +215,28 @@ function OnboardForm() {
                     {r.label}
                   </option>
                 ))}
+                <option value="custom">Custom annual revenue (INR)</option>
               </select>
+              {form.revenue === "custom" && (
+                <div className="mt-2">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    className="input-glass"
+                    placeholder="Enter annual revenue in INR (numbers only)"
+                    value={customRevenue}
+                    onChange={(e) => {
+                      const sanitized = sanitizeRevenueInput(e.target.value);
+                      setCustomRevenue(sanitized);
+                    }}
+                  />
+                  {customRevenue && (
+                    <p className="text-xs text-(--text-tertiary) mt-1">
+                      Parsed value: {formatRevenueINR(customRevenue)}
+                    </p>
+                  )}
+                </div>
+              )}
               {errors.revenue && (
                 <p className="text-xs text-red-400 mt-1">{errors.revenue}</p>
               )}

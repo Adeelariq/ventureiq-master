@@ -3,6 +3,17 @@ import { callGemini } from "@/lib/ai-clients";
 import { isGibberish } from "@/lib/validators";
 
 function revenueBracketBounds(bracket?: string): { min: number; max: number } {
+  if (typeof bracket === "string" && bracket.startsWith("custom:")) {
+    const customValue = Number(bracket.replace("custom:", "").trim());
+    if (Number.isFinite(customValue) && customValue > 0) {
+      // Estimate opportunity cost as a bounded slice of annual revenue.
+      return {
+        min: Math.max(50_000, Math.round(customValue * 0.05)),
+        max: Math.max(2_00_000, Math.round(customValue * 0.35)),
+      };
+    }
+  }
+
   switch (bracket) {
     case "under-50l":
       return { min: 2_00_000, max: 50_00_000 };

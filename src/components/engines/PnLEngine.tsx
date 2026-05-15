@@ -444,7 +444,7 @@ Jun,950000,1120000,340000,460000`;
                        borderRadius: 8,
                        color: "#f0f0f5",
                      }}
-                     formatter={(value: number) => [formatCurrency(value), ""]}
+                     formatter={(value: any) => [formatCurrency(value), ""]}
                      cursor={{ fill: "rgba(255,255,255,0.05)" }}
                    />
                    <Legend iconType="circle" wrapperStyle={{ fontSize: "12px", paddingTop: "10px" }} />

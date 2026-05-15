@@ -24,6 +24,7 @@ interface DecisionResult {
   estimatedOutcome: string;
   confidence: string;
   lesson: string;
+  isGoodDecision?: boolean;
 }
 interface RegretResult {
   totalOpportunityCost: number;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Upload,
@@ -9,36 +9,25 @@ import {
   CheckCircle,
   Loader2,
   Lightbulb,
+  RefreshCcw,
 } from "lucide-react";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useReport } from "@/contexts/ReportContext";
 import {
   BarChart,
   Bar,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Cell,
+  Legend,
+  Area,
+  AreaChart,
 } from "recharts";
 
-interface PnLResult {
-  summary: {
-    totalRevenue: number;
-    totalCosts: number;
-    netProfitLoss: number;
-    profitMargin: number;
-    verdict: string;
-    dataCompleteness: number;
-    confidence: number;
-    missingFields: string[];
-  };
-  revenueItems: { name: string; amount: number; percentage: number }[];
-  costItems: { name: string; amount: number; percentage: number }[];
-  recommendations: { title: string; description: string; impact: string }[];
-  insights: string[];
-}
 interface ValidationState {
   isValid: boolean;
   errors: string[];
@@ -47,14 +36,23 @@ interface ValidationState {
 
 export default function PnLEngine() {
   const { company } = useCompany();
-  const { setPnLResult } = useReport();
+  const { reportData, setPnLResult, resetPnL } = useReport();
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<PnLResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [inputMode, setInputMode] = useState<"paste" | "upload">("paste");
   const [textData, setTextData] = useState("");
   const [validation, setValidation] = useState<ValidationState | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const result = reportData.pnl;
+  const computed = reportData.computedFinancials;
+
+  useEffect(() => {
+    if (reportData.rawFinancialData && !textData) {
+      setTextData(reportData.rawFinancialData);
+    }
+  }, [reportData.rawFinancialData, textData]);
+
   const dummyCsv = `Month,Revenue_INR,Operational_Cost_INR,Marketing_Spend_INR,Employee_Salary_INR
 Jan,1200000,900000,250000,420000
 Feb,1180000,940000,270000,420000
@@ -83,7 +81,6 @@ Jun,950000,1120000,340000,460000`;
 
     setLoading(true);
     setError(null);
-    setResult(null);
     setValidation(null);
 
     try {
@@ -106,15 +103,21 @@ Jun,950000,1120000,340000,460000`;
         throw new Error(data.error || "Analysis failed");
       }
 
-      setResult(data.result);
       setValidation(data.validation || null);
-      setPnLResult(data.result, data.computedFinancials);
+      setPnLResult(data.result, data.computedFinancials, textData);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Something went wrong";
       setError(message);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleReset = () => {
+    resetPnL();
+    setTextData("");
+    setValidation(null);
+    setError(null);
   };
 
   const formatCurrency = (n: number) =>
@@ -124,34 +127,39 @@ Jun,950000,1120000,340000,460000`;
       maximumFractionDigits: 0,
     }).format(n);
 
-  const chartData = result
-    ? [
-        ...result.revenueItems.map((r) => ({
-          name: r.name,
-          amount: r.amount,
-          type: "revenue",
-        })),
-        ...result.costItems.map((c) => ({
-          name: c.name,
-          amount: -c.amount,
-          type: "cost",
-        })),
-      ]
-    : [];
+  const formatCompactCurrency = (n: number) =>
+    new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      notation: "compact",
+      maximumFractionDigits: 1,
+    }).format(n);
+
+  const monthlyTrends = computed?.monthlyTrends || [];
 
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-10 h-10 rounded-xl bg-linear-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
-          <TrendingUp className="w-5 h-5 text-white" />
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-linear-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+            <TrendingUp className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold">P&L Engine</h2>
+            <p className="text-sm text-(--text-secondary)">
+              Upload financials → AI extracts revenue & costs → instant verdict
+            </p>
+          </div>
         </div>
-        <div>
-          <h2 className="text-xl font-bold">P&L Engine</h2>
-          <p className="text-sm text-(--text-secondary)">
-            Upload financials → AI extracts revenue & costs → instant verdict
-          </p>
-        </div>
+        {result && (
+          <button
+            onClick={handleReset}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 transition-colors"
+          >
+            <RefreshCcw className="w-3.5 h-3.5" /> Reset Analysis
+          </button>
+        )}
       </div>
 
       {/* Input Section */}
@@ -272,7 +280,7 @@ Jun,950000,1120000,340000,460000`;
       )}
 
       {/* Results */}
-      {result && (
+      {result && computed && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -311,13 +319,13 @@ Jun,950000,1120000,340000,460000`;
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div>
-                <p className="text-xs text-(--text-tertiary) mb-1">Revenue</p>
+                <p className="text-xs text-(--text-tertiary) mb-1">Total Revenue</p>
                 <p className="text-lg font-bold text-emerald-400">
                   {formatCurrency(result.summary.totalRevenue)}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-(--text-tertiary) mb-1">Costs</p>
+                <p className="text-xs text-(--text-tertiary) mb-1">Total Costs</p>
                 <p className="text-lg font-bold text-red-400">
                   {formatCurrency(result.summary.totalCosts)}
                 </p>
@@ -342,6 +350,111 @@ Jun,950000,1120000,340000,460000`;
               </div>
             </div>
           </motion.div>
+
+          {/* Monthly Trend Visualization */}
+          {monthlyTrends.length > 1 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="glass-card p-6"
+            >
+              <h3 className="text-sm font-semibold mb-4 text-(--text-secondary)">
+                Monthly Financial Trend
+              </h3>
+              <div className="w-full h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={monthlyTrends} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="colorCost" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                    <XAxis dataKey="month" tick={{ fill: "#7a7a8e", fontSize: 12 }} axisLine={false} tickLine={false} />
+                    <YAxis 
+                      tick={{ fill: "#7a7a8e", fontSize: 11 }} 
+                      axisLine={false} 
+                      tickLine={false}
+                      tickFormatter={(val) => formatCompactCurrency(val)} 
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        background: "#1a1a2e",
+                        border: "1px solid rgba(255,255,255,0.1)",
+                        borderRadius: 8,
+                        color: "#f0f0f5",
+                      }}
+                      formatter={(value: any) => [formatCurrency(value), ""]}
+                    />
+                    <Legend iconType="circle" wrapperStyle={{ fontSize: "12px", paddingTop: "10px" }} />
+                    <Area 
+                      type="monotone" 
+                      name="Revenue" 
+                      dataKey="revenue" 
+                      stroke="#10b981" 
+                      strokeWidth={3}
+                      fillOpacity={1} 
+                      fill="url(#colorRev)" 
+                    />
+                    <Area 
+                      type="monotone" 
+                      name="Costs" 
+                      dataKey="costs" 
+                      stroke="#ef4444" 
+                      strokeWidth={3}
+                      fillOpacity={1} 
+                      fill="url(#colorCost)" 
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Revenue vs Costs Comparison */}
+          {monthlyTrends.length > 1 && (
+             <motion.div
+             initial={{ opacity: 0, y: 20 }}
+             animate={{ opacity: 1, y: 0 }}
+             className="glass-card p-6"
+           >
+             <h3 className="text-sm font-semibold mb-4 text-(--text-secondary)">
+               Revenue vs Costs (Bar)
+             </h3>
+             <div className="w-full h-[300px]">
+               <ResponsiveContainer width="100%" height="100%">
+                 <BarChart data={monthlyTrends} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                   <XAxis dataKey="month" tick={{ fill: "#7a7a8e", fontSize: 12 }} axisLine={false} tickLine={false} />
+                   <YAxis 
+                     tick={{ fill: "#7a7a8e", fontSize: 11 }} 
+                     axisLine={false} 
+                     tickLine={false}
+                     tickFormatter={(val) => formatCompactCurrency(val)} 
+                   />
+                   <Tooltip
+                     contentStyle={{
+                       background: "#1a1a2e",
+                       border: "1px solid rgba(255,255,255,0.1)",
+                       borderRadius: 8,
+                       color: "#f0f0f5",
+                     }}
+                     formatter={(value: number) => [formatCurrency(value), ""]}
+                     cursor={{ fill: "rgba(255,255,255,0.05)" }}
+                   />
+                   <Legend iconType="circle" wrapperStyle={{ fontSize: "12px", paddingTop: "10px" }} />
+                   <Bar dataKey="revenue" name="Revenue" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={50} />
+                   <Bar dataKey="costs" name="Costs" fill="#ef4444" radius={[4, 4, 0, 0]} maxBarSize={50} />
+                 </BarChart>
+               </ResponsiveContainer>
+             </div>
+           </motion.div>
+          )}
 
           {/* Data Quality */}
           <div className="glass-card p-6">
@@ -369,42 +482,6 @@ Jun,950000,1120000,340000,460000`;
                 {validation.warnings.join(" ")}
               </p>
             ) : null}
-          </div>
-
-          {/* Chart */}
-          <div className="glass-card p-6">
-            <h3 className="text-sm font-semibold mb-4 text-(--text-secondary)">
-              Revenue vs Costs Breakdown
-            </h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={chartData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                <XAxis type="number" tick={{ fill: "#7a7a8e", fontSize: 12 }} />
-                <YAxis
-                  dataKey="name"
-                  type="category"
-                  tick={{ fill: "#7a7a8e", fontSize: 11 }}
-                  width={120}
-                />
-                <Tooltip
-                  contentStyle={{
-                    background: "#1a1a2e",
-                    border: "1px solid rgba(255,255,255,0.1)",
-                    borderRadius: 8,
-                    color: "#f0f0f5",
-                  }}
-                  formatter={(value: unknown) => [formatCurrency(Math.abs(Number(value))), ""]}
-                />
-                <Bar dataKey="amount" radius={[0, 4, 4, 0]}>
-                  {chartData.map((entry, index) => (
-                    <Cell
-                      key={index}
-                      fill={entry.type === "revenue" ? "#10b981" : "#ef4444"}
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
           </div>
 
           {/* Recommendations */}
@@ -444,16 +521,6 @@ Jun,950000,1120000,340000,460000`;
             </div>
           </div>
 
-          {/* Reset */}
-          <button
-            onClick={() => {
-              setResult(null);
-              setTextData("");
-            }}
-            className="text-sm text-(--accent-primary) hover:underline"
-          >
-            ← Analyze new data
-          </button>
         </motion.div>
       )}
     </div>

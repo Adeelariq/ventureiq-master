@@ -31,6 +31,13 @@ Use ONLY the provided computed metrics.
 Do NOT invent financial numbers.
 If a value is missing, explicitly state it is unavailable.
 
+CRITICAL INTEGRITY RULES:
+- Use ONLY the provided business metrics. Do NOT invent revenue values.
+- Do NOT fabricate losses, costs, or financial figures.
+- Do NOT hallucinate benchmark data or industry averages.
+- If insufficient data exists, explicitly state it is unavailable.
+- All monetary estimates must be proportional to the provided metrics.
+
 You MUST respond with ONLY a valid JSON object in this exact structure:
 {
   "executiveSummary": "string",

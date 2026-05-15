@@ -68,8 +68,14 @@ function OnboardForm() {
         newErrors.revenue = "Enter a valid custom annual revenue";
       } else {
         const value = Number(customRevenue);
+        const MIN_REVENUE = 5_00_000;        // ₹5 lakh
+        const MAX_REVENUE = 800_00_00_000;   // ₹800 crore
         if (!Number.isFinite(value) || value <= 0) {
-          newErrors.revenue = "Custom annual revenue must be a positive number";
+          newErrors.revenue = "Custom annual revenue must be a positive number.";
+        } else if (value < MIN_REVENUE) {
+          newErrors.revenue = "Annual revenue must be at least ₹5 lakh.";
+        } else if (value > MAX_REVENUE) {
+          newErrors.revenue = "Entered revenue appears unrealistic. Maximum allowed is ₹800 crore.";
         }
       }
     }

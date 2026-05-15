@@ -31,6 +31,7 @@ export interface ComputedFinancials {
   profitMargin: number;
   revenueItems: FinancialItem[];
   costItems: FinancialItem[];
+  monthlyTrends: { month: string; revenue: number; costs: number; profit: number }[];
   dataCompleteness: number;
   confidence: number;
   missingFields: string[];
@@ -184,6 +185,7 @@ export function computeMetrics(rows: string[][]): ComputedFinancials {
   let totalCosts = 0;
   let revenueItems: FinancialItem[] = [];
   let costItems: FinancialItem[] = [];
+  let monthlyTrends: { month: string; revenue: number; costs: number; profit: number }[] = [];
   let validAmountCount = 0;
   let totalAmountCells = 0;
 
@@ -193,6 +195,8 @@ export function computeMetrics(rows: string[][]): ComputedFinancials {
     const costTotals = new Map<string, number>();
 
     dataRows.forEach((row) => {
+      let rowRev = 0;
+      let rowCost = 0;
       revenueColumnIndexes.forEach((columnIndex) => {
         totalAmountCells += 1;
         const amount = parseAmount(row[columnIndex] || "");
@@ -201,6 +205,7 @@ export function computeMetrics(rows: string[][]): ComputedFinancials {
           const key = headerRow[columnIndex] || `Revenue_${columnIndex}`;
           revenueTotals.set(key, (revenueTotals.get(key) || 0) + amount);
           totalRevenue += amount;
+          rowRev += amount;
         }
       });
       costColumnIndexes.forEach((columnIndex) => {
@@ -212,7 +217,16 @@ export function computeMetrics(rows: string[][]): ComputedFinancials {
           const normalizedAmount = Math.abs(amount);
           costTotals.set(key, (costTotals.get(key) || 0) + normalizedAmount);
           totalCosts += normalizedAmount;
+          rowCost += normalizedAmount;
         }
+      });
+      
+      const monthLabel = row[0] || `Period ${monthlyTrends.length + 1}`;
+      monthlyTrends.push({
+        month: monthLabel,
+        revenue: rowRev,
+        costs: rowCost,
+        profit: rowRev - rowCost
       });
     });
 
@@ -303,6 +317,7 @@ export function computeMetrics(rows: string[][]): ComputedFinancials {
     profitMargin,
     revenueItems,
     costItems,
+    monthlyTrends,
     dataCompleteness: Number(dataCompleteness.toFixed(1)),
     confidence: Number(confidence.toFixed(1)),
     missingFields,

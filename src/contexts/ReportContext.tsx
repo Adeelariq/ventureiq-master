@@ -53,6 +53,7 @@ export interface RegretResult {
   totalOpportunityCost: number;
   decisions: {
     id: number; originalDecision: string; missedOpportunityCost: number;
+    isGoodDecision?: boolean;
     whatIf: string; estimatedOutcome: string; confidence: string; lesson: string;
   }[];
   forwardLooking: { recommendation: string; potentialValue: string; timeframe: string }[];
@@ -64,6 +65,7 @@ export interface RegretResult {
 interface ReportData {
   pnl?: PnLResult;
   computedFinancials?: ComputedFinancials;
+  rawFinancialData?: string;
   benchmark?: BMResult;
   futureproof?: FPResult;
   regret?: RegretResult;
@@ -71,7 +73,8 @@ interface ReportData {
 
 interface ReportContextType {
   reportData: ReportData;
-  setPnLResult: (r: PnLResult, computedFinancials?: ComputedFinancials) => void;
+  setPnLResult: (r: PnLResult, computedFinancials?: ComputedFinancials, rawData?: string) => void;
+  resetPnL: () => void;
   setBenchmarkResult: (r: BMResult) => void;
   setFutureproofResult: (r: FPResult) => void;
   setRegretResult: (r: RegretResult) => void;
@@ -82,8 +85,12 @@ const ReportContext = createContext<ReportContextType | undefined>(undefined);
 export function ReportProvider({ children }: { children: ReactNode }) {
   const [reportData, setReportData] = useState<ReportData>({});
 
-  const setPnLResult = (r: PnLResult, computedFinancials?: ComputedFinancials) =>
-    setReportData((prev) => ({ ...prev, pnl: r, computedFinancials }));
+  const setPnLResult = (r: PnLResult, computedFinancials?: ComputedFinancials, rawData?: string) =>
+    setReportData((prev) => ({ ...prev, pnl: r, computedFinancials, rawFinancialData: rawData || prev.rawFinancialData }));
+  
+  const resetPnL = () => 
+    setReportData((prev) => ({ ...prev, pnl: undefined, computedFinancials: undefined, rawFinancialData: undefined }));
+    
   const setBenchmarkResult = (r: BMResult) =>
     setReportData((prev) => ({ ...prev, benchmark: r }));
   const setFutureproofResult = (r: FPResult) =>
@@ -93,7 +100,7 @@ export function ReportProvider({ children }: { children: ReactNode }) {
 
   return (
     <ReportContext.Provider
-      value={{ reportData, setPnLResult, setBenchmarkResult, setFutureproofResult, setRegretResult }}
+      value={{ reportData, setPnLResult, resetPnL, setBenchmarkResult, setFutureproofResult, setRegretResult }}
     >
       {children}
     </ReportContext.Provider>

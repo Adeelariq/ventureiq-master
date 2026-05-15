@@ -12,24 +12,33 @@ import {
   Lightbulb,
   AlertTriangle,
   Database,
+  Activity,
+  ShieldCheck,
+  TrendingDown
 } from "lucide-react";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useReport } from "@/contexts/ReportContext";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from "recharts";
 
 interface DecisionResult {
   id: number;
   originalDecision: string;
   missedOpportunityCost: number;
   whatIf: string;
-  estimatedOutcome: string;
+  category?: string;
+  categoryDescription?: string;
+  factors?: string[];
+  stabilityRating?: string;
+  riskLevel?: string;
   confidence: string;
   lesson: string;
   isGoodDecision?: boolean;
 }
+
 interface RegretResult {
   totalOpportunityCost: number;
   decisions: DecisionResult[];
-  forwardLooking: { recommendation: string; potentialValue: string; timeframe: string }[];
+  forwardLooking: { recommendation: string; timeframe: string }[];
   emotionalImpact: string;
   silverLining: string;
   dataSourceLabel?: string;
@@ -52,7 +61,6 @@ export default function RegretEngine() {
   const [result, setResult] = useState<RegretResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Require validated P&L data — same gate as Benchmark and FutureProof
   const hasValidatedPnl =
     !!reportData.computedFinancials &&
     reportData.computedFinancials.confidence >= 40 &&
@@ -80,41 +88,15 @@ export default function RegretEngine() {
         "Ignored rising churn rate among mid-market customers",
         "Overspent on cloud infrastructure without optimization"
       ];
-    } else if (ind.includes("retail") || ind.includes("e-commerce") || ind.includes("ecommerce")) {
+    } else if (ind.includes("retail") || ind.includes("e-commerce")) {
       demo = [
         "Overstocked seasonal inventory right before a demand drop",
-        "Expanded logistics network too aggressively in Tier 3 cities",
-        "Reduced performance marketing budget during peak season"
-      ];
-    } else if (ind.includes("construction") || ind.includes("real estate")) {
-      demo = [
-        "Underestimated raw material inflation on fixed-price contracts",
-        "Expanded into commercial real estate during weak market demand",
-        "Delayed adopting project management software for site tracking"
-      ];
-    } else if (ind.includes("manufacturing") || ind.includes("industrial")) {
-      demo = [
-        "Delayed automation upgrades on the primary assembly line",
-        "Maintained single-supplier dependency for critical components",
-        "Ignored predictive maintenance warnings on key machinery"
-      ];
-    } else if (ind.includes("finance") || ind.includes("banking") || ind.includes("fintech")) {
-      demo = [
-        "Delayed launch of mobile-first onboarding experience",
-        "Underinvested in cybersecurity infrastructure ahead of compliance audit",
-        "Ignored rising customer acquisition costs on primary channels"
-      ];
-    } else if (ind.includes("health") || ind.includes("pharma")) {
-      demo = [
-        "Delayed telemedicine integration post-pandemic",
-        "Overinvested in generic drug inventory before price caps",
-        "Underestimated time required for regulatory compliance updates"
+        "Expanded logistics network too aggressively in Tier 3 cities"
       ];
     } else {
       demo = [
         "Delayed digital transformation initiatives by a year",
-        "Hired aggressively for a new division that failed to find product-market fit",
-        "Cut R&D budget to meet short-term profitability goals"
+        "Hired aggressively for a new division that failed to find product-market fit"
       ];
     }
     
@@ -155,9 +137,13 @@ export default function RegretEngine() {
     }
   };
 
+  const chartData = result && reportData.computedFinancials ? [
+    { name: "Annual Revenue", value: reportData.computedFinancials.totalRevenue, type: "revenue" },
+    { name: result.totalOpportunityCost >= 0 ? "Value Generated" : "Opportunity Cost", value: Math.abs(result.totalOpportunityCost), type: "impact" },
+  ] : [];
+
   return (
     <div>
-      {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <div className="w-10 h-10 rounded-xl bg-linear-to-br from-orange-500 to-red-600 flex items-center justify-center">
           <Clock className="w-5 h-5 text-white" />
@@ -165,48 +151,38 @@ export default function RegretEngine() {
         <div>
           <h2 className="text-xl font-bold">Regret Engine</h2>
           <p className="text-sm text-(--text-secondary)">
-            Calculate missed opportunity cost from past decisions — grounded in your financials
+            Deterministic financial impact of past decisions
           </p>
         </div>
       </div>
 
-      {/* P&L Gate Warning */}
       {!hasValidatedPnl && (
         <div className="glass-card p-5 mb-6 border border-amber-500/30 bg-amber-500/10">
           <div className="flex items-start gap-3">
             <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-semibold text-amber-300 mb-1">
-                Financial Data Required
-              </p>
+              <p className="text-sm font-semibold text-amber-300 mb-1">Financial Data Required</p>
               <p className="text-sm text-amber-200">
-                Upload financial data first to generate grounded regret analysis. Run the{" "}
-                <strong>P&amp;L Engine</strong> with a valid uploaded CSV, then return here.
-                Regret costs are calculated proportionally from your actual revenue — not
-                guessed from a bracket.
+                Upload financial data first to generate grounded regret analysis. Run the P&amp;L Engine with a valid CSV, then return here.
               </p>
             </div>
           </div>
         </div>
       )}
 
-      {/* Data source badge when P&L is available */}
       {hasValidatedPnl && !result && (
         <div className="flex items-center gap-2 mb-4 px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 w-fit">
           <Database className="w-3.5 h-3.5 text-emerald-400" />
           <span className="text-xs text-emerald-400">
-            Grounded in uploaded P&amp;L — Revenue:{" "}
-            {fmt(reportData.computedFinancials!.totalRevenue)} · Confidence:{" "}
-            {reportData.computedFinancials!.confidence.toFixed(0)}%
+            Revenue: {fmt(reportData.computedFinancials!.totalRevenue)} · Confidence: {reportData.computedFinancials!.confidence.toFixed(0)}%
           </span>
         </div>
       )}
 
-      {/* Input Form */}
       {!result && (
         <div className="glass-card p-6 mb-6">
           <p className="text-sm text-(--text-secondary) mb-4">
-            Describe 1–3 past business decisions you wonder about:
+            Describe 1–3 past business decisions to compute their exact financial impact:
           </p>
           <div className="space-y-3">
             {decisions.map((d, i) => (
@@ -246,7 +222,7 @@ export default function RegretEngine() {
               disabled={!hasValidatedPnl}
               className="flex items-center gap-1 text-xs text-purple-400 hover:text-purple-300 hover:underline disabled:opacity-40 disabled:pointer-events-none ml-auto"
             >
-              <Lightbulb className="w-3.5 h-3.5" /> Use Demo Decisions
+              <Lightbulb className="w-3.5 h-3.5" /> Demo Decisions
             </button>
           </div>
           {error && <p className="text-xs text-red-400 mt-3">{error}</p>}
@@ -257,11 +233,11 @@ export default function RegretEngine() {
           >
             {loading ? (
               <>
-                <Loader2 className="w-5 h-5 animate-spin" /> Calculating regret...
+                <Loader2 className="w-5 h-5 animate-spin" /> Computing Impact...
               </>
             ) : (
               <>
-                <IndianRupee className="w-5 h-5" /> Calculate Opportunity Cost
+                <IndianRupee className="w-5 h-5" /> Calculate Deterministic Impact
               </>
             )}
           </button>
@@ -278,34 +254,68 @@ export default function RegretEngine() {
 
       {result && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-          {/* Data source label */}
-          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 w-fit">
-            <Database className="w-3.5 h-3.5 text-emerald-400" />
-            <span className="text-xs text-emerald-400">
-              {result.dataSourceLabel || "Grounded in uploaded P&L data"}
-              {result.pnlConfidence !== undefined && ` · P&L Confidence: ${result.pnlConfidence.toFixed(0)}%`}
-            </span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-500/10 border border-blue-500/20 w-fit">
+              <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
+              <span className="text-xs text-blue-400">
+                100% Deterministic Engine (Formula-Backed)
+              </span>
+            </div>
+            <button
+              onClick={() => {
+                setResult(null);
+                setDecisions([""]);
+              }}
+              className="text-xs text-(--accent-primary) hover:underline"
+            >
+              Analyze new decisions
+            </button>
           </div>
 
-          {/* Total Banner */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="glass-card p-8 text-center border border-orange-500/20 bg-linear-to-br from-orange-500/10 to-red-600/10"
+            className={`glass-card p-8 text-center border ${result.totalOpportunityCost >= 0 ? "border-emerald-500/20 bg-linear-to-br from-emerald-500/10 to-teal-600/10" : "border-red-500/20 bg-linear-to-br from-red-500/10 to-rose-600/10"}`}
           >
             <p className="text-xs text-(--text-tertiary) uppercase tracking-widest mb-2">
-              Total Financial Impact Evaluated
+              Net Financial Impact
             </p>
-            <p className="text-4xl md:text-5xl font-extrabold text-orange-400">
-              {fmt(result.totalOpportunityCost)}
+            <p className={`text-4xl md:text-5xl font-extrabold ${result.totalOpportunityCost >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+              {result.totalOpportunityCost >= 0 ? "+" : "-"}{fmt(Math.abs(result.totalOpportunityCost))}
             </p>
             <p className="text-xs text-(--text-tertiary) mt-1">
-              Proportional estimate based on uploaded annual revenue
+              Based on predefined business impact library + deterministic hashing
             </p>
             <p className="text-sm text-(--text-secondary) mt-3 max-w-md mx-auto italic">
               &ldquo;{result.emotionalImpact}&rdquo;
             </p>
           </motion.div>
+
+          {/* Visualization Graph */}
+          {chartData.length > 0 && (
+            <div className="glass-card p-6 border border-(--border-light)">
+              <h3 className="text-sm font-semibold text-(--text-secondary) mb-4">Financial Proportions</h3>
+              <div className="h-64 w-full">
+                <ResponsiveContainer width="100%" height="100%" minWidth={1}>
+                  <BarChart data={chartData} margin={{ top: 10, right: 10, left: 20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
+                    <XAxis dataKey="name" stroke="#ffffff50" fontSize={12} tickLine={false} axisLine={false} />
+                    <YAxis stroke="#ffffff50" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `₹${(value / 100000).toFixed(0)}L`} />
+                    <Tooltip
+                      cursor={{ fill: '#ffffff05' }}
+                      contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }}
+                      formatter={(value: any) => [fmt(Number(value)), "Amount"]}
+                    />
+                    <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                      {chartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.type === "revenue" ? "#3b82f6" : result.totalOpportunityCost >= 0 ? "#10b981" : "#ef4444"} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
 
           {/* Individual Decisions */}
           <div className="space-y-4">
@@ -317,14 +327,19 @@ export default function RegretEngine() {
                 transition={{ delay: i * 0.15 }}
                 className={`glass-card p-5 border-l-4 ${dec.isGoodDecision ? "border-l-emerald-500" : "border-l-red-500"}`}
               >
-                <div className="flex items-start justify-between mb-3">
+                <div className="flex items-start justify-between mb-4">
                   <div>
-                    <p className="text-sm font-medium text-(--text-secondary)">
-                      Decision #{dec.id || i + 1}
-                    </p>
-                    <p className="text-base font-semibold mt-0.5">{dec.originalDecision}</p>
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="text-xs font-semibold text-(--text-tertiary) uppercase tracking-wider">
+                        {dec.category?.replace(/_/g, ' ') || "STRATEGY"}
+                      </p>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full ${dec.riskLevel === 'High' ? 'bg-red-500/20 text-red-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                        {dec.riskLevel} Risk
+                      </span>
+                    </div>
+                    <p className="text-base font-semibold">{dec.originalDecision}</p>
                   </div>
-                  <div className="text-right">
+                  <div className="text-right shrink-0 ml-4">
                     <span className={`text-xl font-extrabold ${dec.isGoodDecision ? "text-emerald-400" : "text-red-400"}`}>
                       {dec.isGoodDecision ? "+" : "-"}{fmt(dec.missedOpportunityCost)}
                     </span>
@@ -333,49 +348,60 @@ export default function RegretEngine() {
                     </p>
                   </div>
                 </div>
-                <div className="p-3 rounded-lg bg-(--bg-card) mb-3">
-                  <p className="text-xs text-(--text-tertiary) mb-1 flex items-center gap-1">
-                    <ArrowRight className="w-3 h-3" /> What if...
+
+                {dec.factors && dec.factors.length > 0 && (
+                  <div className="mb-4 flex flex-wrap gap-2">
+                    {dec.factors.map((factor, idx) => (
+                      <span key={idx} className="text-xs px-2 py-1 bg-(--bg-card) border border-(--border-light) rounded-md text-(--text-secondary)">
+                        {factor}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                  <div className="p-3 rounded-lg bg-(--bg-card)">
+                    <p className="text-xs text-(--text-tertiary) mb-1 flex items-center gap-1">
+                      <Activity className="w-3 h-3" /> Impact Vector
+                    </p>
+                    <p className="text-sm text-(--text-secondary)">{dec.categoryDescription}</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-(--bg-card)">
+                    <p className="text-xs text-(--text-tertiary) mb-1 flex items-center gap-1">
+                      <TrendingDown className="w-3 h-3" /> What if...
+                    </p>
+                    <p className="text-sm text-(--text-secondary)">{dec.whatIf}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-xs mt-3 pt-3 border-t border-(--border-light)">
+                  <p className="text-emerald-400 flex items-start gap-1">
+                    <Lightbulb className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                    {dec.lesson}
                   </p>
-                  <p className="text-sm text-(--text-secondary)">{dec.whatIf}</p>
+                  <div className="flex gap-2">
+                    <span className="badge badge-info">{dec.confidence} Confidence</span>
+                    {dec.stabilityRating && (
+                      <span className="badge border border-blue-500/30 bg-blue-500/10 text-blue-400">
+                        {dec.stabilityRating} Stability
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-(--text-secondary)">📊 {dec.estimatedOutcome}</span>
-                  <span
-                    className={`badge ${
-                      dec.confidence === "High"
-                        ? "badge-success"
-                        : dec.confidence === "Medium"
-                        ? "badge-warning"
-                        : "badge-info"
-                    }`}
-                  >
-                    {dec.confidence} confidence
-                  </span>
-                </div>
-                <p className="text-xs text-emerald-400 mt-2 flex items-start gap-1">
-                  <Lightbulb className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-                  {dec.lesson}
-                </p>
               </motion.div>
             ))}
           </div>
 
-          {/* Forward Looking */}
           {result.forwardLooking?.length > 0 && (
-            <div className="glass-card p-6">
+            <div className="glass-card p-6 border-t-2 border-t-purple-500/50">
               <h3 className="text-sm font-semibold text-(--text-secondary) mb-3">
-                🔮 Forward-Looking Recommendations
+                🔮 Forward-Looking Strategy
               </h3>
               <div className="space-y-3">
                 {result.forwardLooking.map((fl, i) => (
-                  <div
-                    key={i}
-                    className="p-3 rounded-lg bg-(--bg-card) border border-emerald-500/15"
-                  >
+                  <div key={i} className="p-3 rounded-lg bg-(--bg-card) border border-purple-500/15">
                     <p className="text-sm font-medium">{fl.recommendation}</p>
                     <div className="flex gap-4 mt-1 text-xs text-(--text-tertiary)">
-                      <span>💰 {fl.potentialValue}</span>
                       <span>⏱ {fl.timeframe}</span>
                     </div>
                   </div>
@@ -384,23 +410,12 @@ export default function RegretEngine() {
             </div>
           )}
 
-          {/* Silver Lining */}
           <div className="glass-card p-5 border border-emerald-500/20 bg-emerald-500/5">
             <p className="text-sm">
               <span className="text-emerald-400 font-semibold">Silver Lining: </span>
               <span className="text-(--text-secondary)">{result.silverLining}</span>
             </p>
           </div>
-
-          <button
-            onClick={() => {
-              setResult(null);
-              setDecisions([""]);
-            }}
-            className="text-sm text-(--accent-primary) hover:underline"
-          >
-            ← Analyze different decisions
-          </button>
         </motion.div>
       )}
     </div>

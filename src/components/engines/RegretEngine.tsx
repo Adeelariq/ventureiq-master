@@ -315,7 +315,7 @@ export default function RegretEngine() {
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.15 }}
-                className={`glass-card p-5 border-l-4 ${dec.isGoodDecision ? "border-l-emerald-500" : "border-l-orange-500"}`}
+                className={`glass-card p-5 border-l-4 ${dec.isGoodDecision ? "border-l-emerald-500" : "border-l-red-500"}`}
               >
                 <div className="flex items-start justify-between mb-3">
                   <div>
@@ -325,8 +325,8 @@ export default function RegretEngine() {
                     <p className="text-base font-semibold mt-0.5">{dec.originalDecision}</p>
                   </div>
                   <div className="text-right">
-                    <span className={`text-xl font-extrabold ${dec.isGoodDecision ? "text-emerald-400" : "text-orange-400"}`}>
-                      {fmt(dec.missedOpportunityCost)}
+                    <span className={`text-xl font-extrabold ${dec.isGoodDecision ? "text-emerald-400" : "text-red-400"}`}>
+                      {dec.isGoodDecision ? "+" : "-"}{fmt(dec.missedOpportunityCost)}
                     </span>
                     <p className="text-xs text-(--text-tertiary) mt-0.5">
                       {dec.isGoodDecision ? "value generated" : "opportunity cost"}

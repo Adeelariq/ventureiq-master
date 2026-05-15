@@ -362,7 +362,7 @@ Jun,950000,1120000,340000,460000`;
                 Monthly Financial Trend
               </h3>
               <div className="w-full h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={1}>
                   <AreaChart data={monthlyTrends} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
@@ -427,7 +427,7 @@ Jun,950000,1120000,340000,460000`;
                Revenue vs Costs (Bar)
              </h3>
              <div className="w-full h-[300px]">
-               <ResponsiveContainer width="100%" height="100%">
+               <ResponsiveContainer width="100%" height="100%" minWidth={1}>
                  <BarChart data={monthlyTrends} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
                    <XAxis dataKey="month" tick={{ fill: "#7a7a8e", fontSize: 12 }} axisLine={false} tickLine={false} />

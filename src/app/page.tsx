@@ -1,5 +1,6 @@
-﻿"use client";
+"use client";
 
+import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   TrendingUp,
@@ -7,203 +8,314 @@ import {
   BarChart3,
   Clock,
   ArrowRight,
-  Lock,
-  Zap,
-  Brain,
+  FileText,
 } from "lucide-react";
-import Link from "next/link";
 
 const engines = [
   {
     icon: TrendingUp,
-    title: "P&L Engine",
-    desc: "Upload financials, get instant profit & loss verdicts with AI.",
-    gradient: "from-emerald-500/20 to-teal-600/20",
-    border: "border-emerald-500/20",
-    iconColor: "text-emerald-400",
+    label: "P&L Engine",
+    desc: "Upload a CSV to get revenue, cost, and margin analysis with AI-generated recommendations.",
+    accent: "text-emerald-500",
+    tag: "Financial Analysis",
   },
   {
     icon: Shield,
-    title: "FutureProof",
-    desc: "Top 5 risks + 5-year threat timeline for your industry.",
-    gradient: "from-violet-500/20 to-purple-600/20",
-    border: "border-violet-500/20",
-    iconColor: "text-violet-400",
+    label: "FutureProof",
+    desc: "Identify the top 5 risks and a 5-year threat timeline specific to your industry and scale.",
+    accent: "text-violet-400",
+    tag: "Risk Intelligence",
   },
   {
     icon: BarChart3,
-    title: "Benchmark",
-    desc: "AI-synthesised comparisons vs 1,000+ similar companies.",
-    gradient: "from-blue-500/20 to-cyan-600/20",
-    border: "border-blue-500/20",
-    iconColor: "text-blue-400",
+    label: "Benchmark Engine",
+    desc: "Compare performance across 6 dimensions against 1,000+ peers in your industry segment.",
+    accent: "text-blue-400",
+    tag: "Competitive Intelligence",
   },
   {
     icon: Clock,
-    title: "Regret Engine",
-    desc: 'Calculate "missed opportunity cost in ₹" from past decisions.',
-    gradient: "from-orange-500/20 to-red-600/20",
-    border: "border-orange-500/20",
-    iconColor: "text-orange-400",
+    label: "Regret Engine",
+    desc: "Quantify the financial cost of past decisions using deterministic impact modelling.",
+    accent: "text-amber-400",
+    tag: "Decision Analysis",
   },
 ];
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 30 },
-  visible: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: { delay: i * 0.1, duration: 0.6, ease: "easeOut" as const },
-  }),
-};
+const stats = [
+  { value: "90s", label: "Time to first insight" },
+  { value: "5", label: "Analytical engines" },
+  { value: "0", label: "Data stored server-side" },
+];
 
 export default function LandingPage() {
   return (
-    <main className="relative min-h-screen overflow-hidden">
-      {/* Background */}
-      <div className="grid-bg" />
-      <div className="orb orb-cyan" />
-      <div className="orb orb-purple" />
-      <div className="orb orb-emerald" />
-
+    <main
+      className="min-h-screen flex flex-col"
+      style={{ background: "var(--bg-base)" }}
+    >
       {/* Nav */}
-      <nav className="relative z-10 flex items-center justify-between px-6 md:px-12 py-5">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-linear-to-br from-(--accent-primary) to-(--accent-secondary) flex items-center justify-center">
-            <Brain className="w-5 h-5 text-white" />
+      <nav
+        className="flex items-center justify-between px-6 md:px-10 h-14 border-b shrink-0"
+        style={{ borderColor: "var(--border-subtle)" }}
+      >
+        <div className="flex items-center gap-2.5">
+          <div
+            className="w-6 h-6 rounded flex items-center justify-center"
+            style={{ background: "var(--accent)" }}
+          >
+            <TrendingUp className="w-3.5 h-3.5 text-white" />
           </div>
-          <span className="text-lg font-bold tracking-tight">VentureIQ</span>
+          <span
+            className="text-sm font-semibold tracking-tight"
+            style={{ color: "var(--text-primary)" }}
+          >
+            VentureIQ
+          </span>
         </div>
-        <Link
-          href="/onboard"
-          className="text-sm font-medium text-(--text-secondary) hover:text-(--accent-primary) transition-colors"
-        >
-          Get Started →
-        </Link>
+
+        <div className="flex items-center gap-6">
+          <span
+            className="text-xs hidden md:block"
+            style={{ color: "var(--text-secondary)" }}
+          >
+            Business Intelligence Platform
+          </span>
+          <Link href="/onboard">
+            <button className="btn-primary text-xs px-4 py-2">
+              Get Started <ArrowRight className="w-3.5 h-3.5 inline ml-1" />
+            </button>
+          </Link>
+        </div>
       </nav>
 
       {/* Hero */}
-      <section className="relative z-10 flex flex-col items-center text-center px-6 pt-16 pb-20 md:pt-28 md:pb-32">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-          className="mb-6"
-        >
-          <span className="badge badge-info">
-            <Zap className="w-3 h-3" /> Powered by AI
-          </span>
-        </motion.div>
+      <section className="flex-1 flex flex-col px-6 md:px-10 pt-16 pb-10 md:pt-20">
+        <div className="max-w-4xl">
+          {/* Label */}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="flex items-center gap-2 mb-6"
+          >
+            <span
+              className="text-xs font-semibold uppercase tracking-widest"
+              style={{ color: "var(--accent)" }}
+            >
+              Financial Intelligence
+            </span>
+            <span
+              className="w-6 h-px"
+              style={{ background: "var(--accent)", opacity: 0.4 }}
+            />
+            <span
+              className="text-xs"
+              style={{ color: "var(--text-secondary)" }}
+            >
+              Built for founders & operators
+            </span>
+          </motion.div>
 
-        <motion.h1
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1, duration: 0.7 }}
-          className="text-4xl md:text-6xl lg:text-7xl font-extrabold leading-[1.1] tracking-tight max-w-4xl"
-        >
-          Analyse Your Business{" "}
-          <span className="bg-linear-to-r from-(--accent-primary) to-(--accent-secondary) bg-clip-text text-transparent">
-            in 90 Seconds
-          </span>
-        </motion.h1>
+          {/* Headline — weight contrast, no gradient */}
+          <motion.h1
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.08, duration: 0.5 }}
+            className="text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.08] tracking-tight mb-5"
+            style={{ color: "var(--text-primary)" }}
+          >
+            Five engines.
+            <br />
+            <span style={{ color: "var(--text-secondary)", fontWeight: 400 }}>
+              One analytical layer.
+            </span>
+          </motion.h1>
 
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25, duration: 0.7 }}
-          className="mt-6 text-lg md:text-xl text-(--text-secondary) max-w-2xl leading-relaxed"
-        >
-          Upload your financials, describe your decisions, and let AI deliver
-          instant P&L verdicts, risk forecasts, industry benchmarks, and
-          opportunity cost calculations.
-        </motion.p>
+          <motion.p
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.18, duration: 0.5 }}
+            className="text-base md:text-lg leading-relaxed max-w-2xl mb-8"
+            style={{ color: "var(--text-secondary)" }}
+          >
+            Upload your financials and get P&L verdicts, risk forecasts, industry
+            benchmarks, and opportunity-cost calculations — in under 90 seconds.
+            No signup. No data retention.
+          </motion.p>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4, duration: 0.7 }}
-          className="mt-10 flex flex-col sm:flex-row gap-4"
-        >
-          <Link href="/onboard">
-            <button className="btn-glow flex items-center gap-2 text-base px-8 py-4">
-              Analyse My Business
-              <ArrowRight className="w-5 h-5" />
-            </button>
-          </Link>
-        </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.28, duration: 0.4 }}
+            className="flex flex-col sm:flex-row items-start gap-4"
+          >
+            <Link href="/onboard">
+              <button className="btn-primary flex items-center gap-2 px-6 py-3 text-sm">
+                Analyse My Business
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </Link>
+            <div
+              className="flex items-center gap-5 text-xs pt-3 sm:pt-0"
+              style={{ color: "var(--text-secondary)" }}
+            >
+              <span className="flex items-center gap-1.5">
+                <span
+                  className="w-1.5 h-1.5 rounded-full"
+                  style={{ background: "var(--success)" }}
+                />
+                No sign-up required
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span
+                  className="w-1.5 h-1.5 rounded-full"
+                  style={{ background: "var(--success)" }}
+                />
+                Client-side processing
+              </span>
+            </div>
+          </motion.div>
+        </div>
 
+        {/* Stats row */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.6, duration: 0.7 }}
-          className="mt-8 flex items-center gap-6 text-xs text-(--text-tertiary)"
+          transition={{ delay: 0.45, duration: 0.5 }}
+          className="flex items-center gap-8 mt-12 pt-8"
+          style={{ borderTop: "1px solid var(--border-subtle)" }}
         >
-          <span className="flex items-center gap-1.5">
-            <Lock className="w-3.5 h-3.5" /> Data never leaves your device
-          </span>
-          <span className="w-1 h-1 rounded-full bg-(--text-tertiary)" />
-          <span className="flex items-center gap-1.5">
-            <Zap className="w-3.5 h-3.5" /> Results in under 90 seconds
-          </span>
+          {stats.map((s) => (
+            <div key={s.label}>
+              <p
+                className="text-2xl font-bold tabular-nums tracking-tight"
+                style={{ color: "var(--text-primary)" }}
+              >
+                {s.value}
+              </p>
+              <p
+                className="text-xs mt-0.5"
+                style={{ color: "var(--text-secondary)" }}
+              >
+                {s.label}
+              </p>
+            </div>
+          ))}
         </motion.div>
       </section>
 
-      {/* Engine Cards */}
-      <section className="relative z-10 px-6 md:px-12 pb-24">
-        <div className="max-w-5xl mx-auto">
-          <motion.h2
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            className="text-center text-sm font-semibold text-(--text-tertiary) uppercase tracking-widest mb-12"
+      {/* Engines grid */}
+      <section
+        className="px-6 md:px-10 pb-16"
+        style={{ borderTop: "1px solid var(--border-subtle)" }}
+      >
+        <div className="pt-8 mb-6 flex items-center justify-between">
+          <h2
+            className="text-xs font-semibold uppercase tracking-widest"
+            style={{ color: "var(--text-secondary)" }}
           >
-            Four AI Engines. One Dashboard.
-          </motion.h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {engines.map((engine, i) => (
-              <motion.div
-                key={engine.title}
-                custom={i}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-                variants={fadeUp}
-                className={`glass-card p-6 bg-linear-to-br ${engine.gradient} border ${engine.border}`}
+            Platform Engines
+          </h2>
+          <Link href="/onboard">
+            <span
+              className="text-xs hover:underline cursor-pointer"
+              style={{ color: "var(--accent)" }}
+            >
+              Launch dashboard →
+            </span>
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {engines.map((e, i) => (
+            <motion.div
+              key={e.label}
+              initial={{ opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.07, duration: 0.4 }}
+              className="card p-5 group cursor-default"
+            >
+              <div className="flex items-start justify-between mb-4">
+                <e.icon className={`w-5 h-5 ${e.accent}`} />
+                <span
+                  className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded"
+                  style={{
+                    background: "var(--bg-elevated)",
+                    color: "var(--text-secondary)",
+                  }}
+                >
+                  {e.tag}
+                </span>
+              </div>
+              <h3
+                className="text-sm font-semibold mb-1.5"
+                style={{ color: "var(--text-primary)" }}
               >
-                <engine.icon className={`w-8 h-8 ${engine.iconColor} mb-4`} />
-                <h3 className="text-lg font-semibold mb-2">{engine.title}</h3>
-                <p className="text-sm text-(--text-secondary) leading-relaxed">
-                  {engine.desc}
-                </p>
-              </motion.div>
-            ))}
-          </div>
+                {e.label}
+              </h3>
+              <p
+                className="text-xs leading-relaxed"
+                style={{ color: "var(--text-secondary)" }}
+              >
+                {e.desc}
+              </p>
+            </motion.div>
+          ))}
         </div>
       </section>
 
-      {/* Bottom CTA */}
-      <section className="relative z-10 px-6 pb-20">
-        <div className="max-w-2xl mx-auto text-center">
-          <div className="glass-card p-10">
-            <h2 className="text-2xl md:text-3xl font-bold mb-4">
-              Ready to see the truth about your business?
-            </h2>
-            <p className="text-(--text-secondary) mb-8">
-              No sign-up required. No data stored. Just instant AI insights.
-            </p>
-            <Link href="/onboard">
-              <button className="btn-glow flex items-center gap-2 mx-auto text-base px-8 py-4">
-                Get Started Free
-                <ArrowRight className="w-5 h-5" />
-              </button>
-            </Link>
+      {/* Document analyzer callout */}
+      <section
+        className="px-6 md:px-10 pb-16"
+      >
+        <div
+          className="card p-6 flex flex-col md:flex-row items-start md:items-center gap-4 justify-between"
+          style={{ borderColor: "var(--border-default)" }}
+        >
+          <div className="flex items-start gap-4">
+            <FileText
+              className="w-5 h-5 mt-0.5 shrink-0"
+              style={{ color: "var(--accent)" }}
+            />
+            <div>
+              <p
+                className="text-sm font-semibold mb-0.5"
+                style={{ color: "var(--text-primary)" }}
+              >
+                Document Analyzer
+              </p>
+              <p
+                className="text-xs leading-relaxed max-w-lg"
+                style={{ color: "var(--text-secondary)" }}
+              >
+                Upload any financial PDF — annual reports, pitch decks, board
+                memos — and ask questions in plain language. 1M token context,
+                zero data stored.
+              </p>
+            </div>
           </div>
+          <Link href="/onboard" className="shrink-0">
+            <button className="btn-ghost text-xs px-4 py-2 whitespace-nowrap">
+              Open Analyzer →
+            </button>
+          </Link>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="relative z-10 border-t border-(--border-glass) py-8 text-center text-xs text-(--text-tertiary)">
-        <p>© 2026 VentureIQ. Built for the future of business intelligence.</p>
+      <footer
+        className="px-6 md:px-10 py-5 flex items-center justify-between text-xs"
+        style={{
+          borderTop: "1px solid var(--border-subtle)",
+          color: "var(--text-secondary)",
+        }}
+      >
+        <span>VentureIQ — AI-Powered Business Intelligence</span>
+        <span style={{ color: "var(--text-tertiary)" }}>
+          © 2026
+        </span>
       </footer>
     </main>
   );

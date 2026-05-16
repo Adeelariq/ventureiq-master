@@ -523,13 +523,13 @@ export default function PdfExport() {
         </div>
         <div>
           <h2 className="text-xl font-bold">Export Detailed PDF Report</h2>
-          <p className="text-sm text-(--text-secondary)">Full data export — every number, insight & recommendation</p>
+          <p className="text-sm text-[var(--text-secondary)]">Full data export — every number, insight & recommendation</p>
         </div>
       </div>
 
       {/* Engine Status */}
       <div className="glass-card p-5 mb-5">
-        <p className="text-xs font-semibold text-(--text-tertiary) uppercase tracking-widest mb-3">
+        <p className="text-xs font-semibold text-[var(--text-tertiary)] uppercase tracking-widest mb-3">
           Engines Ready for Export
         </p>
         <div className="grid grid-cols-2 gap-3">
@@ -541,7 +541,7 @@ export default function PdfExport() {
           ].map(({ key, label, color }) => {
             const ready = !!(reportData as Record<string, unknown>)[key];
             return (
-              <div key={key} className={`flex items-center gap-2 text-sm ${ready ? color : "text-(--text-tertiary)"}`}>
+              <div key={key} className={`flex items-center gap-2 text-sm ${ready ? color : "text-[var(--text-tertiary)]"}`}>
                 {ready
                   ? <CheckCircle className="w-4 h-4" />
                   : <AlertCircle className="w-4 h-4 opacity-40" />}
@@ -551,16 +551,16 @@ export default function PdfExport() {
           })}
         </div>
         {!hasAny && (
-          <p className="text-xs text-(--text-tertiary) mt-4">
+          <p className="text-xs text-[var(--text-tertiary)] mt-4">
             💡 Run at least one engine first, then come back to export.
           </p>
         )}
       </div>
 
       <div className="glass-card p-8 text-center">
-        <FileDown className="w-16 h-16 text-(--text-tertiary) mx-auto mb-4" />
+        <FileDown className="w-16 h-16 text-[var(--text-tertiary)] mx-auto mb-4" />
         <h3 className="text-lg font-semibold mb-2">Generate Full Data Report</h3>
-        <p className="text-sm text-(--text-secondary) mb-6 max-w-md mx-auto">
+        <p className="text-sm text-[var(--text-secondary)] mb-6 max-w-md mx-auto">
           Downloads a multi-page PDF with every table, metric, recommendation and insight
           from all engines you have run — no screenshots, real data.
         </p>
@@ -588,7 +588,7 @@ export default function PdfExport() {
             : <><Download className="w-5 h-5" /> Download Detailed Report</>}
         </button>
 
-        <p className="text-xs text-(--text-tertiary) mt-4">
+        <p className="text-xs text-[var(--text-tertiary)] mt-4">
           All data stays in your browser — nothing is sent to a server.
         </p>
       </div>

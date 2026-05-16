@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { ArrowRight, ArrowLeft, Building2 } from "lucide-react";
+import { ArrowRight, ArrowLeft, TrendingUp } from "lucide-react";
 import { useCompany, CompanyProfile } from "@/contexts/CompanyContext";
 import { INDUSTRIES, COMPANY_SIZES, REVENUE_BRACKETS } from "@/lib/constants";
 import Link from "next/link";
@@ -29,6 +29,26 @@ function formatRevenueINR(amount: string): string {
   }).format(value);
 }
 
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <label
+      className="block text-[11px] font-semibold uppercase tracking-wider mb-1.5"
+      style={{ color: "var(--text-secondary)" }}
+    >
+      {children}
+    </label>
+  );
+}
+
+function FieldError({ msg }: { msg?: string }) {
+  if (!msg) return null;
+  return (
+    <p className="text-xs mt-1.5" style={{ color: "var(--danger)" }}>
+      {msg}
+    </p>
+  );
+}
+
 function OnboardForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -39,16 +59,14 @@ function OnboardForm() {
     ? sanitizeRevenueInput(initialRevenue.replace(CUSTOM_REVENUE_PREFIX, ""))
     : "";
 
-  // Pre-fill from URL params (for the judge demo trick)
   const [form, setForm] = useState<CompanyProfile>({
-    name: searchParams.get("company") || "",
-    industry: searchParams.get("industry") || "",
-    size: searchParams.get("size") || "",
-    revenue: hasCustomRevenue ? "custom" : initialRevenue,
+    name:        searchParams.get("company") || "",
+    industry:    searchParams.get("industry") || "",
+    size:        searchParams.get("size") || "",
+    revenue:     hasCustomRevenue ? "custom" : initialRevenue,
     yearFounded: parseInt(searchParams.get("year") || "") || new Date().getFullYear(),
   });
   const [customRevenue, setCustomRevenue] = useState(initialCustomRevenue);
-
   const [errors, setErrors] = useState<Partial<Record<keyof CompanyProfile, string>>>({});
 
   const update = (field: keyof CompanyProfile, value: string | number) => {
@@ -57,32 +75,26 @@ function OnboardForm() {
   };
 
   const validate = (): boolean => {
-    const newErrors: Partial<Record<keyof CompanyProfile, string>> = {};
-    if (!form.name.trim()) newErrors.name = "Company name is required";
-    if (!form.industry) newErrors.industry = "Select an industry";
-    if (!form.size) newErrors.size = "Select company size";
+    const e: Partial<Record<keyof CompanyProfile, string>> = {};
+    if (!form.name.trim()) e.name = "Company name is required";
+    if (!form.industry) e.industry = "Select an industry";
+    if (!form.size) e.size = "Select company size";
     if (!form.revenue) {
-      newErrors.revenue = "Select revenue bracket";
+      e.revenue = "Select revenue bracket";
     } else if (form.revenue === "custom") {
       if (!customRevenue) {
-        newErrors.revenue = "Enter a valid custom annual revenue";
+        e.revenue = "Enter a valid custom annual revenue";
       } else {
-        const value = Number(customRevenue);
-        const MIN_REVENUE = 5_00_000;        // ₹5 lakh
-        const MAX_REVENUE = 800_00_00_000;   // ₹800 crore
-        if (!Number.isFinite(value) || value <= 0) {
-          newErrors.revenue = "Custom annual revenue must be a positive number.";
-        } else if (value < MIN_REVENUE) {
-          newErrors.revenue = "Annual revenue must be at least ₹5 lakh.";
-        } else if (value > MAX_REVENUE) {
-          newErrors.revenue = "Entered revenue appears unrealistic. Maximum allowed is ₹800 crore.";
-        }
+        const val = Number(customRevenue);
+        if (!Number.isFinite(val) || val <= 0) e.revenue = "Must be a positive number";
+        else if (val < 500_000) e.revenue = "Minimum ₹5 lakh";
+        else if (val > 80_000_000_000) e.revenue = "Maximum ₹800 crore";
       }
     }
     if (!form.yearFounded || form.yearFounded < 1900 || form.yearFounded > 2026)
-      newErrors.yearFounded = "Enter a valid year";
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+      e.yearFounded = "Enter a valid year (1900–2026)";
+    setErrors(e);
+    return Object.keys(e).length === 0;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -100,49 +112,65 @@ function OnboardForm() {
   };
 
   return (
-    <main className="relative min-h-screen flex items-center justify-center overflow-hidden px-6 py-12">
-      {/* Background */}
-      <div className="grid-bg" />
-      <div className="orb orb-cyan" />
-      <div className="orb orb-purple" />
-
+    <main
+      className="min-h-screen flex items-center justify-center px-4 py-12"
+      style={{ background: "var(--bg-base)" }}
+    >
       <motion.div
-        initial={{ opacity: 0, y: 30 }}
+        initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="relative z-10 w-full max-w-lg"
+        transition={{ duration: 0.4 }}
+        className="w-full max-w-md"
       >
-        {/* Back */}
+        {/* Back link */}
         <Link
           href="/"
-          className="inline-flex items-center gap-2 text-sm text-(--text-secondary) hover:text-(--accent-primary) transition-colors mb-8"
+          className="inline-flex items-center gap-1.5 text-xs mb-8 transition-colors"
+          style={{ color: "var(--text-secondary)" }}
         >
-          <ArrowLeft className="w-4 h-4" /> Back to home
+          <ArrowLeft className="w-3.5 h-3.5" />
+          Back to home
         </Link>
 
-        {/* Card */}
-        <div className="glass-card p-8 md:p-10">
-          {/* Header */}
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-linear-to-br from-(--accent-primary) to-(--accent-secondary) flex items-center justify-center">
-              <Building2 className="w-5 h-5 text-white" />
+        {/* Header */}
+        <div className="mb-7">
+          <div className="flex items-center gap-2.5 mb-3">
+            <div
+              className="w-7 h-7 rounded flex items-center justify-center"
+              style={{ background: "var(--accent)" }}
+            >
+              <TrendingUp className="w-4 h-4 text-white" />
             </div>
-            <div>
-              <h1 className="text-xl font-bold">Tell us about your business</h1>
-              <p className="text-xs text-(--text-secondary)">
-                5 quick fields — takes 30 seconds
-              </p>
-            </div>
+            <span
+              className="text-sm font-semibold"
+              style={{ color: "var(--text-primary)" }}
+            >
+              VentureIQ
+            </span>
           </div>
+          <h1
+            className="text-xl font-bold tracking-tight"
+            style={{ color: "var(--text-primary)" }}
+          >
+            Set up your company profile
+          </h1>
+          <p
+            className="text-sm mt-1"
+            style={{ color: "var(--text-secondary)" }}
+          >
+            Five fields. Used to calibrate all analytical engines.
+          </p>
+        </div>
 
-          <div className="w-full h-px bg-(--border-glass) my-6" />
-
-          <form onSubmit={handleSubmit} className="space-y-5">
+        {/* Form card */}
+        <div
+          className="card p-6"
+          style={{ borderColor: "var(--border-default)" }}
+        >
+          <form onSubmit={handleSubmit} className="space-y-4">
             {/* Company Name */}
             <div>
-              <label className="block text-sm font-medium text-(--text-secondary) mb-1.5">
-                Company Name
-              </label>
+              <FieldLabel>Company Name</FieldLabel>
               <input
                 type="text"
                 className="input-glass"
@@ -150,78 +178,72 @@ function OnboardForm() {
                 value={form.name}
                 onChange={(e) => update("name", e.target.value)}
               />
-              {errors.name && (
-                <p className="text-xs text-red-400 mt-1">{errors.name}</p>
-              )}
+              <FieldError msg={errors.name} />
             </div>
 
             {/* Industry */}
             <div>
-              <label className="block text-sm font-medium text-(--text-secondary) mb-1.5">
-                Industry
-              </label>
+              <FieldLabel>Industry</FieldLabel>
               <select
                 className="input-glass"
                 value={form.industry}
                 onChange={(e) => update("industry", e.target.value)}
               >
-                <option value="">Select your industry</option>
+                <option value="">Select industry</option>
                 {INDUSTRIES.map((ind) => (
-                  <option key={ind} value={ind}>
-                    {ind}
-                  </option>
+                  <option key={ind} value={ind}>{ind}</option>
                 ))}
               </select>
-              {errors.industry && (
-                <p className="text-xs text-red-400 mt-1">{errors.industry}</p>
-              )}
+              <FieldError msg={errors.industry} />
             </div>
 
-            {/* Company Size */}
-            <div>
-              <label className="block text-sm font-medium text-(--text-secondary) mb-1.5">
-                Company Size
-              </label>
-              <select
-                className="input-glass"
-                value={form.size}
-                onChange={(e) => update("size", e.target.value)}
-              >
-                <option value="">Select company size</option>
-                {COMPANY_SIZES.map((s) => (
-                  <option key={s.value} value={s.value}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
-              {errors.size && (
-                <p className="text-xs text-red-400 mt-1">{errors.size}</p>
-              )}
+            {/* Size + Year — 2-col */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <FieldLabel>Company Size</FieldLabel>
+                <select
+                  className="input-glass"
+                  value={form.size}
+                  onChange={(e) => update("size", e.target.value)}
+                >
+                  <option value="">Select size</option>
+                  {COMPANY_SIZES.map((s) => (
+                    <option key={s.value} value={s.value}>{s.label}</option>
+                  ))}
+                </select>
+                <FieldError msg={errors.size} />
+              </div>
+              <div>
+                <FieldLabel>Year Founded</FieldLabel>
+                <input
+                  type="number"
+                  className="input-glass"
+                  placeholder="e.g. 2020"
+                  min={1900}
+                  max={2026}
+                  value={form.yearFounded || ""}
+                  onChange={(e) => update("yearFounded", parseInt(e.target.value) || 0)}
+                />
+                <FieldError msg={errors.yearFounded} />
+              </div>
             </div>
 
-            {/* Annual Revenue */}
+            {/* Revenue */}
             <div>
-              <label className="block text-sm font-medium text-(--text-secondary) mb-1.5">
-                Annual Revenue
-              </label>
+              <FieldLabel>Annual Revenue</FieldLabel>
               <select
                 className="input-glass"
                 value={form.revenue}
                 onChange={(e) => {
-                  const nextValue = e.target.value;
-                  update("revenue", nextValue);
-                  if (nextValue !== "custom") {
-                    setCustomRevenue("");
-                  }
+                  update("revenue", e.target.value);
+                  if (e.target.value !== "custom") setCustomRevenue("");
                 }}
               >
                 <option value="">Select revenue bracket</option>
                 {REVENUE_BRACKETS.map((r) => (
-                  <option key={r.value} value={r.value}>
-                    {r.label}
-                  </option>
+                  <option key={r.value} value={r.value}>{r.label}</option>
                 ))}
-                <option value="custom">Custom annual revenue (INR)</option>
+                <option value="custom">Custom amount (INR)</option>
               </select>
               {form.revenue === "custom" && (
                 <div className="mt-2">
@@ -229,42 +251,21 @@ function OnboardForm() {
                     type="text"
                     inputMode="numeric"
                     className="input-glass"
-                    placeholder="Enter annual revenue in INR (numbers only)"
+                    placeholder="Enter annual revenue in INR"
                     value={customRevenue}
-                    onChange={(e) => {
-                      const sanitized = sanitizeRevenueInput(e.target.value);
-                      setCustomRevenue(sanitized);
-                    }}
+                    onChange={(e) => setCustomRevenue(sanitizeRevenueInput(e.target.value))}
                   />
                   {customRevenue && (
-                    <p className="text-xs text-(--text-tertiary) mt-1">
-                      Parsed value: {formatRevenueINR(customRevenue)}
+                    <p
+                      className="text-xs mt-1 tabular-nums"
+                      style={{ color: "var(--text-secondary)" }}
+                    >
+                      {formatRevenueINR(customRevenue)}
                     </p>
                   )}
                 </div>
               )}
-              {errors.revenue && (
-                <p className="text-xs text-red-400 mt-1">{errors.revenue}</p>
-              )}
-            </div>
-
-            {/* Year Founded */}
-            <div>
-              <label className="block text-sm font-medium text-(--text-secondary) mb-1.5">
-                Year Founded
-              </label>
-              <input
-                type="number"
-                className="input-glass"
-                placeholder="e.g. 2020"
-                min={1900}
-                max={2026}
-                value={form.yearFounded || ""}
-                onChange={(e) => update("yearFounded", parseInt(e.target.value) || 0)}
-              />
-              {errors.yearFounded && (
-                <p className="text-xs text-red-400 mt-1">{errors.yearFounded}</p>
-              )}
+              <FieldError msg={errors.revenue} />
             </div>
 
             <button
@@ -272,14 +273,17 @@ function OnboardForm() {
               className="btn-glow w-full flex items-center justify-center gap-2 mt-2"
             >
               Launch Dashboard
-              <ArrowRight className="w-5 h-5" />
+              <ArrowRight className="w-4 h-4" />
             </button>
           </form>
-
-          <p className="text-xs text-(--text-tertiary) text-center mt-5">
-            🔒 Your data is kept in browser session storage; analysis requests are processed securely server-side.
-          </p>
         </div>
+
+        <p
+          className="text-[11px] text-center mt-4"
+          style={{ color: "var(--text-tertiary)" }}
+        >
+          Data is kept in browser session storage. Analysis is processed server-side and never stored.
+        </p>
       </motion.div>
     </main>
   );
@@ -287,11 +291,13 @@ function OnboardForm() {
 
 export default function OnboardPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="shimmer w-96 h-[600px] rounded-2xl" />
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="skeleton w-96 h-[500px] rounded-lg" />
+        </div>
+      }
+    >
       <OnboardForm />
     </Suspense>
   );

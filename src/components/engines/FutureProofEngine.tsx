@@ -20,9 +20,23 @@ interface FPResult {
   dataSourceLabel?: string;
 }
 
-const sevColor = (s: number) => s >= 8 ? "text-red-400" : s >= 6 ? "text-orange-400" : s >= 4 ? "text-yellow-400" : "text-emerald-400";
-const sevBg = (s: number) => s >= 8 ? "bg-red-500/15 border-red-500/30" : s >= 6 ? "bg-orange-500/15 border-orange-500/30" : s >= 4 ? "bg-yellow-500/15 border-yellow-500/30" : "bg-emerald-500/15 border-emerald-500/30";
-const impClr: Record<string, string> = { Critical: "badge-danger", High: "badge-warning", Medium: "badge-info", Low: "badge-success" };
+const CHART_STYLE = {
+  background: "#0b1018",
+  border: "1px solid rgba(255,255,255,0.08)",
+  borderRadius: 6,
+  color: "#dde3ef",
+  fontSize: 12,
+};
+
+const sevColor = (s: number) =>
+  s >= 8 ? "var(--danger)" : s >= 6 ? "var(--warning)" : s >= 4 ? "#eab308" : "var(--success)";
+
+const impClr: Record<string, string> = {
+  Critical: "badge-danger",
+  High: "badge-warning",
+  Medium: "badge-info",
+  Low: "badge-success",
+};
 
 export default function FutureProofEngine() {
   const { company } = useCompany();
@@ -30,6 +44,7 @@ export default function FutureProofEngine() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<FPResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+
   const hasValidatedPnl =
     !!reportData.computedFinancials &&
     reportData.computedFinancials.confidence >= 40 &&
@@ -40,12 +55,11 @@ export default function FutureProofEngine() {
     setLoading(true); setError(null);
     try {
       const res = await fetch("/api/engines/futureproof", {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          industry: company.industry,
-          size: company.size,
-          revenue: company.revenue,
-          yearFounded: company.yearFounded,
+          industry: company.industry, size: company.size,
+          revenue: company.revenue, yearFounded: company.yearFounded,
           companyName: company.name,
           computedFinancials: reportData.computedFinancials,
         }),
@@ -56,145 +70,253 @@ export default function FutureProofEngine() {
       setResult(data.result);
       setFutureproofResult(data.result);
     } catch (err: unknown) {
-      if (err instanceof Error && err.name === "AbortError") return; // component unmounted, ignore
+      if (err instanceof Error && err.name === "AbortError") return;
       setError(err instanceof Error ? err.message : "Failed");
-    }
-    finally { setLoading(false); }
+    } finally { setLoading(false); }
   };
 
   const chartData = result?.timeline?.map((y) => ({
     year: y.year,
-    avgProb: y.threats.reduce((s, t) => s + t.probability, 0) / (y.threats.length || 1),
+    avgProb: Math.round(y.threats.reduce((s, t) => s + t.probability, 0) / (y.threats.length || 1)),
   })) || [];
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-linear-to-br from-violet-500 to-purple-600 flex items-center justify-center">
-            <Shield className="w-5 h-5 text-white" />
-          </div>
+      {/* Engine header */}
+      <div className="engine-header">
+        <div className="flex items-center gap-2.5">
+          <Shield className="w-4 h-4" style={{ color: "#a78bfa" }} />
           <div>
-            <h2 className="text-xl font-bold">FutureProof Engine</h2>
-            <p className="text-sm text-(--text-secondary)">Top 5 risks + 5-year threat timeline</p>
+            <h2 className="text-sm font-semibold tracking-tight" style={{ color: "var(--text-primary)" }}>
+              FutureProof Engine
+            </h2>
+            <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+              Top 5 risks · 5-year threat timeline
+            </p>
           </div>
         </div>
-        {result && hasValidatedPnl && <button onClick={() => analyze()} className="flex items-center gap-1 text-xs text-(--accent-primary) hover:underline"><RefreshCw className="w-3.5 h-3.5" /> Re-analyse</button>}
+        {result && hasValidatedPnl && (
+          <button
+            onClick={() => analyze()}
+            className="flex items-center gap-1.5 text-xs"
+            style={{ color: "var(--accent)" }}
+          >
+            <RefreshCw className="w-3 h-3" /> Re-analyse
+          </button>
+        )}
       </div>
 
+      {/* Requires P&L data gate */}
       {!hasValidatedPnl && (
-        <div className="glass-card p-5 mb-6 border border-amber-500/30 bg-amber-500/10">
-          <p className="text-sm text-amber-200">
-            FutureProof is disabled until validated P&L data is available. Run the P&L Engine with a valid uploaded CSV first.
-          </p>
-        </div>
-      )}
-
-      {loading && (
-        <div className="space-y-4">
-          <div className="glass-card p-8 flex flex-col items-center"><Loader2 className="w-8 h-8 animate-spin text-violet-400 mb-3" /><p className="text-sm text-(--text-secondary)">Scanning threats for {company?.industry}...</p></div>
-          {[1,2,3].map(i => <div key={i} className="shimmer h-20 rounded-xl" />)}
-        </div>
-      )}
-
-      {error && (
-        <div className="glass-card p-6 border-l-4 border-l-red-500">
-          <div className="flex items-center gap-2 text-red-400 mb-2"><AlertTriangle className="w-5 h-5" /><span className="font-medium">Analysis Failed</span></div>
-          <p className="text-sm text-(--text-secondary)">{error}</p>
-          {hasValidatedPnl && (
-            <button onClick={() => analyze()} className="mt-3 text-sm text-(--accent-primary) hover:underline">Try again →</button>
-          )}
-        </div>
-      )}
-
-      {!loading && !error && !result && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-10 flex flex-col items-center text-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-linear-to-br from-violet-500/20 to-purple-600/20 border border-violet-500/30 flex items-center justify-center">
-            <Shield className="w-8 h-8 text-violet-400" />
-          </div>
+        <div
+          className="card p-4 mb-5 flex items-start gap-3"
+          style={{ borderColor: "var(--warning-border)", background: "var(--warning-dim)" }}
+        >
+          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "var(--warning)" }} />
           <div>
-            <h3 className="text-lg font-bold mb-1">Ready for Risk Scan</h3>
-            <p className="text-sm text-(--text-secondary) max-w-sm">Generate a 5-year risk outlook using company profile and validated P&L signals when available.</p>
+            <p className="text-sm font-semibold" style={{ color: "var(--warning)" }}>
+              Financial data required
+            </p>
+            <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>
+              Run the P&L Engine with a valid CSV first. FutureProof uses your financial signals to calibrate risk estimates.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Empty state with CTA */}
+      {!loading && !error && !result && (
+        <div className="card p-8 flex flex-col items-center text-center gap-4">
+          <Shield className="w-8 h-8" style={{ color: "#a78bfa", opacity: 0.7 }} />
+          <div>
+            <h3 className="text-sm font-semibold mb-1" style={{ color: "var(--text-primary)" }}>
+              5-Year Risk Scan
+            </h3>
+            <p className="text-xs max-w-sm" style={{ color: "var(--text-secondary)" }}>
+              Generates a ranked list of industry-specific threats and a year-by-year threat timeline calibrated to your company profile.
+            </p>
           </div>
           <button
             onClick={() => analyze()}
             disabled={!hasValidatedPnl}
-            className="btn-glow flex items-center gap-2 px-6 py-3 rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+            className="btn-glow flex items-center gap-2 px-5 py-2.5 text-sm"
           >
             <Shield className="w-4 h-4" /> Run FutureProof Analysis
           </button>
-        </motion.div>
+        </div>
       )}
 
-      {result && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-          <div className="glass-card p-4">
-            <p className="text-sm font-medium">
-              {result.dataSourceLabel?.includes("Powered by uploaded P&L")
-                ? "Powered by uploaded P&L"
-                : "AI-generated estimate"}
+      {/* Loading */}
+      {loading && (
+        <div className="space-y-3">
+          <div className="card p-6 flex flex-col items-center gap-2">
+            <Loader2 className="w-5 h-5 animate-spin" style={{ color: "#a78bfa" }} />
+            <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+              Scanning threats for {company?.industry}...
             </p>
           </div>
-          {/* Risk Score */}
-          <div className="glass-card p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-(--text-secondary)">Overall Risk Score</h3>
-              <span className={`text-3xl font-extrabold ${result.riskScore >= 70 ? "text-red-400" : result.riskScore >= 40 ? "text-orange-400" : "text-emerald-400"}`}>{result.riskScore}/100</span>
+          {[1, 2, 3].map(i => <div key={i} className="skeleton h-16 rounded-lg" />)}
+        </div>
+      )}
+
+      {/* Error */}
+      {error && (
+        <div className="card p-4" style={{ borderLeft: "3px solid var(--danger)" }}>
+          <p className="text-sm font-medium mb-1" style={{ color: "var(--danger)" }}>Analysis failed</p>
+          <p className="text-xs" style={{ color: "var(--text-secondary)" }}>{error}</p>
+          {hasValidatedPnl && (
+            <button onClick={() => analyze()} className="mt-3 text-xs" style={{ color: "var(--accent)" }}>
+              Try again →
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Results */}
+      {result && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+          {/* Risk score + summary */}
+          <div className="card p-5">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
+                Overall Risk Score
+              </p>
+              <span
+                className="text-2xl font-bold tabular-nums"
+                style={{
+                  color: result.riskScore >= 70 ? "var(--danger)"
+                    : result.riskScore >= 40 ? "var(--warning)" : "var(--success)",
+                }}
+              >
+                {result.riskScore}<span className="text-sm font-normal" style={{ color: "var(--text-secondary)" }}>/100</span>
+              </span>
             </div>
-            <div className="w-full bg-(--bg-tertiary) rounded-full h-3 overflow-hidden">
-              <motion.div initial={{ width: 0 }} animate={{ width: `${result.riskScore}%` }} transition={{ duration: 1 }}
-                className={`h-full rounded-full ${result.riskScore >= 70 ? "bg-linear-to-r from-red-500 to-red-400" : result.riskScore >= 40 ? "bg-linear-to-r from-orange-500 to-yellow-400" : "bg-linear-to-r from-emerald-500 to-teal-400"}`} />
+            <div className="w-full h-1.5 rounded-full overflow-hidden mb-3" style={{ background: "var(--bg-elevated)" }}>
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${result.riskScore}%` }}
+                transition={{ duration: 0.8 }}
+                className="h-full rounded-full"
+                style={{
+                  background: result.riskScore >= 70 ? "var(--danger)"
+                    : result.riskScore >= 40 ? "var(--warning)" : "var(--success)",
+                }}
+              />
             </div>
-            <p className="text-sm text-(--text-secondary) mt-3">{result.summary}</p>
+            <p className="text-xs" style={{ color: "var(--text-secondary)" }}>{result.summary}</p>
           </div>
 
-          {/* Risk Cards */}
-          <div>
-            <h3 className="text-sm font-semibold text-(--text-secondary) mb-3 flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-orange-400" /> Top 5 Risks</h3>
-            <div className="space-y-3">
+          {/* Risk cards */}
+          <div className="card p-4">
+            <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--text-secondary)" }}>
+              Top 5 Risks
+            </p>
+            <div className="space-y-2.5">
               {result.risks?.map((risk, i) => (
-                <motion.div key={i} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.1 }} className={`glass-card p-4 border ${sevBg(risk.severity)}`}>
-                  <div className="flex items-start justify-between mb-2">
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.08 }}
+                  className="p-3 rounded-md"
+                  style={{ background: "var(--bg-elevated)", border: "1px solid var(--border-subtle)" }}
+                >
+                  <div className="flex items-start justify-between mb-1.5">
                     <div className="flex items-center gap-2">
-                      <span className={`text-2xl font-black ${sevColor(risk.severity)}`}>{risk.severity}</span>
-                      <div><p className="text-sm font-semibold">{risk.title}</p><span className="badge badge-info text-[10px]">{risk.category}</span></div>
+                      <span
+                        className="text-lg font-black tabular-nums w-6"
+                        style={{ color: sevColor(risk.severity), lineHeight: 1 }}
+                      >
+                        {risk.severity}
+                      </span>
+                      <div>
+                        <p className="text-xs font-semibold" style={{ color: "var(--text-primary)" }}>
+                          {risk.title}
+                        </p>
+                        <span className="badge badge-info text-[10px] mt-0.5">{risk.category}</span>
+                      </div>
                     </div>
-                    <span className="text-xs text-(--text-tertiary)">{risk.probability}% likely</span>
+                    <span className="text-[11px] tabular-nums shrink-0 ml-2" style={{ color: "var(--text-secondary)" }}>
+                      {risk.probability}%
+                    </span>
                   </div>
-                  <p className="text-xs text-(--text-secondary) mb-2">{risk.description}</p>
-                  <div className="flex items-start gap-1.5 text-xs text-emerald-400"><Zap className="w-3.5 h-3.5 mt-0.5 shrink-0" /><span>{risk.mitigation}</span></div>
+                  <p className="text-xs ml-8 mb-1.5" style={{ color: "var(--text-secondary)" }}>
+                    {risk.description}
+                  </p>
+                  <div className="flex items-start gap-1.5 ml-8 text-xs" style={{ color: "var(--success)" }}>
+                    <Zap className="w-3 h-3 mt-0.5 shrink-0" />
+                    <span>{risk.mitigation}</span>
+                  </div>
                 </motion.div>
               ))}
             </div>
           </div>
 
-          {/* Chart */}
-          <div className="glass-card p-6">
-            <h3 className="text-sm font-semibold text-(--text-secondary) mb-4">5-Year Threat Probability</h3>
-            <ResponsiveContainer width="100%" height={200}>
+          {/* Threat probability chart */}
+          <div className="card p-4">
+            <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--text-secondary)" }}>
+              5-Year Threat Probability
+            </p>
+            <ResponsiveContainer width="100%" height={160}>
               <AreaChart data={chartData}>
-                <defs><linearGradient id="pGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} /><stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} /></linearGradient></defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                <XAxis dataKey="year" tick={{ fill: "#7a7a8e", fontSize: 12 }} />
-                <YAxis tick={{ fill: "#7a7a8e", fontSize: 12 }} />
-                <Tooltip contentStyle={{ background: "#1a1a2e", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "#f0f0f5" }} />
-                <Area type="monotone" dataKey="avgProb" stroke="#8b5cf6" fill="url(#pGrad)" strokeWidth={2} name="Avg Threat %" />
+                <defs>
+                  <linearGradient id="pGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%"  stopColor="#a78bfa" stopOpacity={0.25} />
+                    <stop offset="95%" stopColor="#a78bfa" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
+                <XAxis dataKey="year" tick={{ fill: "#5c6b82", fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: "#5c6b82", fontSize: 10 }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={CHART_STYLE} />
+                <Area type="monotone" dataKey="avgProb" stroke="#a78bfa" fill="url(#pGrad)" strokeWidth={2} name="Avg Threat %" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
 
           {/* Timeline */}
-          <div className="glass-card p-6">
-            <h3 className="text-sm font-semibold text-(--text-secondary) mb-4">Year-by-Year Threats</h3>
+          <div className="card p-4">
+            <p className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: "var(--text-secondary)" }}>
+              Year-by-Year Threats
+            </p>
             <div className="space-y-4">
               {result.timeline?.map((year, yi) => (
-                <motion.div key={year.year} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: yi * 0.1 }}>
-                  <div className="flex items-center gap-2 mb-2"><div className="w-2 h-2 rounded-full bg-violet-500" /><span className="text-sm font-bold">{year.year}</span></div>
-                  <div className="ml-4 border-l border-(--border-glass) pl-4 space-y-2">
+                <motion.div
+                  key={year.year}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: yi * 0.08 }}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <span
+                      className="w-1.5 h-1.5 rounded-full shrink-0"
+                      style={{ background: "#a78bfa" }}
+                    />
+                    <span className="text-xs font-bold" style={{ color: "var(--text-primary)" }}>
+                      {year.year}
+                    </span>
+                  </div>
+                  <div
+                    className="ml-4 pl-4 space-y-2"
+                    style={{ borderLeft: "1px solid var(--border-subtle)" }}
+                  >
                     {year.threats?.map((t, ti) => (
-                      <div key={ti} className="p-3 rounded-lg bg-(--bg-card)">
-                        <div className="flex items-center justify-between mb-1"><span className="text-sm font-medium">{t.title}</span><span className={`badge text-[10px] ${impClr[t.impact] || "badge-info"}`}>{t.impact}</span></div>
-                        <p className="text-xs text-(--text-secondary)">{t.description}</p>
+                      <div
+                        key={ti}
+                        className="p-2.5 rounded-md"
+                        style={{ background: "var(--bg-elevated)" }}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-medium" style={{ color: "var(--text-primary)" }}>
+                            {t.title}
+                          </span>
+                          <span className={`badge text-[10px] ${impClr[t.impact] || "badge-info"}`}>
+                            {t.impact}
+                          </span>
+                        </div>
+                        <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                          {t.description}
+                        </p>
                       </div>
                     ))}
                   </div>

@@ -9,19 +9,25 @@ import {
   Clock,
   FileText,
   Download,
-  Brain,
   LogOut,
+  ChevronLeft,
   ChevronRight,
 } from "lucide-react";
 import { useCompany } from "@/contexts/CompanyContext";
 import { EngineId } from "@/lib/constants";
-const navItems: { id: EngineId | "docs" | "export"; icon: React.ElementType; label: string }[] = [
-  { id: "pnl", icon: TrendingUp, label: "P&L Engine" },
-  { id: "futureproof", icon: Shield, label: "FutureProof" },
-  { id: "benchmark", icon: BarChart3, label: "Benchmark" },
-  { id: "regret", icon: Clock, label: "Regret Engine" },
-  { id: "docs", icon: FileText, label: "Doc Analyzer" },
-  { id: "export", icon: Download, label: "Export PDF" },
+
+const navItems: {
+  id: EngineId | "docs" | "export";
+  icon: React.ElementType;
+  label: string;
+  sublabel: string;
+}[] = [
+  { id: "pnl",         icon: TrendingUp, label: "P&L Engine",    sublabel: "Profit & Loss" },
+  { id: "futureproof", icon: Shield,     label: "FutureProof",   sublabel: "Risk Forecast" },
+  { id: "benchmark",   icon: BarChart3,  label: "Benchmark",     sublabel: "Peer Analysis" },
+  { id: "regret",      icon: Clock,      label: "Regret Engine", sublabel: "Decision Cost" },
+  { id: "docs",        icon: FileText,   label: "Doc Analyzer",  sublabel: "RAG Analysis" },
+  { id: "export",      icon: Download,   label: "Export PDF",    sublabel: "Generate Report" },
 ];
 
 export default function DashboardLayout({
@@ -32,20 +38,17 @@ export default function DashboardLayout({
   const router = useRouter();
   const { company, clearCompany } = useCompany();
   const [activeTab, setActiveTab] = useState<string>("pnl");
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
     if (!company) {
       const stored = sessionStorage.getItem("ventureiq_company");
-      if (!stored) {
-        router.push("/onboard");
-      }
+      if (!stored) router.push("/onboard");
     }
   }, [company, router]);
 
   const handleTabChange = (id: string) => {
     setActiveTab(id);
-    // Dispatch custom event so dashboard page can react
     window.dispatchEvent(new CustomEvent("ventureiq:tab", { detail: id }));
   };
 
@@ -57,87 +60,198 @@ export default function DashboardLayout({
   if (!company) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="shimmer w-full max-w-xs h-8 rounded-lg" />
+        <div className="skeleton w-72 h-8 rounded" />
       </div>
     );
   }
 
+  const companyAge = new Date().getFullYear() - company.yearFounded;
+
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div
+      className="flex h-screen overflow-hidden"
+      style={{ background: "var(--bg-base)" }}
+    >
       {/* Sidebar */}
       <aside
-        className={`${
-          sidebarOpen ? "w-64" : "w-16"
-        } shrink-0 border-r border-(--border-glass) bg-(--bg-secondary) flex flex-col transition-all duration-300`}
+        style={{
+          width: collapsed ? "56px" : "228px",
+          background: "var(--bg-surface)",
+          borderRight: "1px solid var(--border-subtle)",
+          display: "flex",
+          flexDirection: "column",
+          flexShrink: 0,
+          transition: "width 0.2s ease",
+          overflow: "hidden",
+        }}
       >
-        {/* Logo */}
-        <div className="flex items-center gap-2.5 px-4 py-5 border-b border-(--border-glass)">
-          <div className="w-8 h-8 rounded-lg bg-linear-to-br from-(--accent-primary) to-(--accent-secondary) flex items-center justify-center shrink-0">
-            <Brain className="w-4 h-4 text-white" />
+        {/* Logo row */}
+        <div
+          className="flex items-center px-3 h-12 shrink-0"
+          style={{ borderBottom: "1px solid var(--border-subtle)" }}
+        >
+          <div
+            className="w-6 h-6 rounded flex items-center justify-center shrink-0"
+            style={{ background: "var(--accent)" }}
+          >
+            <TrendingUp className="w-3.5 h-3.5 text-white" />
           </div>
-          {sidebarOpen && (
-            <span className="text-sm font-bold tracking-tight">VentureIQ</span>
+          {!collapsed && (
+            <span
+              className="ml-2.5 text-sm font-semibold tracking-tight truncate"
+              style={{ color: "var(--text-primary)" }}
+            >
+              VentureIQ
+            </span>
           )}
         </div>
 
-        {/* Company Info */}
-        {sidebarOpen && (
-          <div className="px-4 py-4 border-b border-(--border-glass)">
+        {/* Company context */}
+        {!collapsed && (
+          <div
+            className="px-3 py-3 shrink-0"
+            style={{ borderBottom: "1px solid var(--border-subtle)" }}
+          >
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-linear-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+              {/* Monogram */}
+              <div
+                className="w-7 h-7 rounded text-xs font-bold flex items-center justify-center shrink-0"
+                style={{
+                  background: "var(--bg-elevated)",
+                  color: "var(--accent)",
+                  border: "1px solid var(--border-default)",
+                  fontVariantNumeric: "tabular-nums",
+                }}
+              >
                 {company.name.charAt(0).toUpperCase()}
               </div>
               <div className="min-w-0">
-                <p className="text-sm font-semibold truncate">{company.name}</p>
-                <p className="text-xs text-(--text-tertiary) truncate">
+                <p
+                  className="text-xs font-semibold truncate"
+                  style={{ color: "var(--text-primary)" }}
+                >
+                  {company.name}
+                </p>
+                <p
+                  className="text-[11px] truncate"
+                  style={{ color: "var(--text-secondary)" }}
+                >
                   {company.industry}
                 </p>
               </div>
+            </div>
+            <div
+              className="flex items-center gap-3 mt-2.5"
+            >
+              <span
+                className="text-[10px] px-1.5 py-0.5 rounded"
+                style={{
+                  background: "var(--bg-elevated)",
+                  color: "var(--text-secondary)",
+                  border: "1px solid var(--border-subtle)",
+                  fontFamily: "monospace",
+                }}
+              >
+                {company.size}
+              </span>
+              <span
+                className="text-[10px]"
+                style={{ color: "var(--text-tertiary)" }}
+              >
+                Est. {company.yearFounded}
+              </span>
+              {companyAge > 0 && (
+                <span
+                  className="text-[10px]"
+                  style={{ color: "var(--text-tertiary)" }}
+                >
+                  {companyAge}yr
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Collapsed monogram */}
+        {collapsed && (
+          <div className="flex justify-center py-3 shrink-0"
+            style={{ borderBottom: "1px solid var(--border-subtle)" }}
+          >
+            <div
+              className="w-7 h-7 rounded text-xs font-bold flex items-center justify-center"
+              style={{
+                background: "var(--bg-elevated)",
+                color: "var(--accent)",
+                border: "1px solid var(--border-default)",
+              }}
+            >
+              {company.name.charAt(0).toUpperCase()}
             </div>
           </div>
         )}
 
         {/* Nav */}
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
+          {!collapsed && (
+            <p
+              className="text-[10px] font-semibold uppercase tracking-wider px-2 mb-2"
+              style={{ color: "var(--text-tertiary)" }}
+            >
+              Engines
+            </p>
+          )}
           {navItems.map((item) => (
             <button
               key={item.id}
               onClick={() => handleTabChange(item.id)}
-              className={`sidebar-item w-full ${
-                activeTab === item.id ? "active" : ""
-              }`}
-              title={item.label}
+              title={collapsed ? item.label : undefined}
+              className={`sidebar-item ${activeTab === item.id ? "active" : ""}`}
+              style={{ justifyContent: collapsed ? "center" : undefined, gap: collapsed ? 0 : undefined }}
             >
               <item.icon className="w-4 h-4 shrink-0" />
-              {sidebarOpen && <span>{item.label}</span>}
-              {sidebarOpen && activeTab === item.id && (
-                <ChevronRight className="w-3.5 h-3.5 ml-auto text-(--accent-primary)" />
+              {!collapsed && (
+                <span className="truncate">{item.label}</span>
               )}
             </button>
           ))}
         </nav>
 
-        {/* Collapse + Logout */}
-        <div className="px-3 py-4 border-t border-(--border-glass) space-y-1">
+        {/* Bottom: collapse + logout */}
+        <div
+          className="px-2 py-3 space-y-0.5 shrink-0"
+          style={{ borderTop: "1px solid var(--border-subtle)" }}
+        >
           <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="sidebar-item w-full text-xs"
+            onClick={() => setCollapsed(!collapsed)}
+            className="sidebar-item"
+            style={{ justifyContent: collapsed ? "center" : undefined }}
+            title={collapsed ? "Expand" : "Collapse"}
           >
-            <ChevronRight
-              className={`w-4 h-4 transition-transform ${
-                sidebarOpen ? "rotate-180" : ""
-              }`}
-            />
-            {sidebarOpen && <span>Collapse</span>}
+            {collapsed ? (
+              <ChevronRight className="w-4 h-4 shrink-0" />
+            ) : (
+              <>
+                <ChevronLeft className="w-4 h-4 shrink-0" />
+                <span>Collapse</span>
+              </>
+            )}
           </button>
-          <button onClick={handleLogout} className="sidebar-item w-full text-xs text-red-400">
+          <button
+            onClick={handleLogout}
+            className="sidebar-item"
+            style={{
+              justifyContent: collapsed ? "center" : undefined,
+              color: "var(--danger)",
+            }}
+            title="Exit"
+          >
             <LogOut className="w-4 h-4 shrink-0" />
-            {sidebarOpen && <span>Exit</span>}
+            {!collapsed && <span>Exit</span>}
           </button>
         </div>
       </aside>
 
-      {/* Main Content */}
+      {/* Main content */}
       <main className="flex-1 overflow-y-auto">{children}</main>
     </div>
   );
